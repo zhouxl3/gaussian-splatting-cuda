@@ -6,27 +6,19 @@ set(CMAKE_TOOLCHAIN_FILE "${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake")
 cmake_minimum_required(VERSION 3.24...3.30)
 project(gaussian_splatting_cuda LANGUAGES CUDA CXX C)
 
-# Setup
-get_filename_component(PROJ_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
+set(CMAKE_MESSAGE_CONTEXT_SHOW ON)
+set(CMAKE_REQUIRED_FLAGS "-v")  # 打印详细诊断
 
-# Set Torch_DIR based on platform and build type
-if (WIN32)
-    if(CMAKE_CONFIGURATION_TYPES)
-        # https://github.com/pytorch/pytorch/issues/155667
-        set(Torch_DIR "${PROJ_ROOT_DIR}/external/release/libtorch/share/cmake/Torch")
-    else()
-        if (CMAKE_BUILD_TYPE STREQUAL "Release")
-            set(Torch_DIR "${PROJ_ROOT_DIR}/external/release/libtorch/share/cmake/Torch")
-        elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
-            set(Torch_DIR "${PROJ_ROOT_DIR}/external/debug/libtorch/share/cmake/Torch")
-        else()
-            message(FATAL_ERROR "libtorch binaries only available for Debug and Release on Windows. Current build type: '${CMAKE_BUILD_TYPE}'")
-        endif()
-    endif()
-else()
-    set(Torch_DIR "${PROJ_ROOT_DIR}/external/libtorch/share/cmake/Torch")
+set(CMAKE_CUDA_USE_STATIC_CUDA_RUNTIME OFF)
+set(CMAKE_CUDA_RUNTIME_LIBRARY "Shared")  # or CUDA_RUNTIME_LIBRARY Shared (CMake >= 3.18)
+
+if(MSVC)
+    add_definitions(-DUNICODE -D_UNICODE)
 endif()
 
+# Setup
+get_filename_component(PROJ_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
+set(Torch_DIR "${PROJ_ROOT_DIR}/external/libtorch/share/cmake/Torch")
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CUDA_STANDARD 20)
@@ -93,7 +85,24 @@ find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 include(CheckCXXSourceCompiles)
 set(CMAKE_REQUIRED_INCLUDES ${CUDAToolkit_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIRS})
 set(CMAKE_REQUIRED_LIBRARIES ${CUDA_LIBRARIES} ${OPENGL_LIBRARIES})
+
+message(WARNING "Using C++ compiler: ${CMAKE_CXX_COMPILER}")
+message(WARNING "Compiler flags: ${CMAKE_CXX_FLAGS}")
+
+message(WARNING "CUDAToolkit_INCLUDE_DIRS: ${CUDAToolkit_INCLUDE_DIRS}")
+message(WARNING "OPENGL_INCLUDE_DIRS: ${OPENGL_INCLUDE_DIRS}")
+
+message(WARNING "CUDA_LIBRARIES: ${CUDA_LIBRARIES}")
+message(WARNING "OPENGL_LIBRARIES: ${OPENGL_LIBRARIES}")
+
 check_cxx_source_compiles("
+        #ifndef WINGDIAPI
+            #define WINGDIAPI __declspec(dllimport)
+        #endif
+
+        #ifndef APIENTRY
+            #define APIENTRY __stdcall
+        #endif
     #include <cuda_gl_interop.h>
     int main() {
         cudaGraphicsResource_t resource;
@@ -216,6 +225,7 @@ set_target_properties(gaussian_kernels PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
         POSITION_INDEPENDENT_CODE ON
         CUDA_RESOLVE_DEVICE_SYMBOLS ON
+        CUDA_RUNTIME_LIBRARY Shared
 )
 
 target_include_directories(gaussian_kernels
@@ -510,3 +520,44 @@ if(CCACHE_PROGRAM)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
     message(STATUS "Using ccache: ${CCACHE_PROGRAM}")
 endif()
+
+# === Diagnostic Info Injection ===
+message(STATUS "======== 🔍 CMake Diagnostics Begin ========")
+
+# Compiler
+message(STATUS "CMake Generator: ${CMAKE_GENERATOR}")
+message(STATUS "CMake Build Type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "C++ Compiler: ${CMAKE_CXX_COMPILER}")
+message(STATUS "C++ Flags: ${CMAKE_CXX_FLAGS}")
+message(STATUS "CUDA Compiler: ${CMAKE_CUDA_COMPILER}")
+message(STATUS "CUDA Flags: ${CMAKE_CUDA_FLAGS}")
+message(STATUS "CUDA Architecture: ${CMAKE_CUDA_ARCHITECTURES}")
+message(STATUS "CUDA Toolkit Root: ${CUDAToolkit_ROOT}")
+message(STATUS "Torch_DIR: ${Torch_DIR}")
+message(STATUS "VCPKG_ROOT: $ENV{VCPKG_ROOT}")
+
+# Include Paths
+message(STATUS "CMAKE_INCLUDE_PATH: ${CMAKE_INCLUDE_PATH}")
+message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
+message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
+
+# Torch & CUDA Details
+foreach(lib ${TORCH_LIBRARIES})
+    message(STATUS "Torch Library Linked: ${lib}")
+endforeach()
+
+# Detect if any static CUDA libs are accidentally injected
+foreach(lib ${TORCH_LIBRARIES})
+    string(FIND "${lib}" "cudart_static" static_found)
+    if(NOT static_found EQUAL -1)
+        message(WARNING "⚠️  [Diagnosis] Found cudart_static.lib in TORCH_LIBRARIES: ${lib}")
+    endif()
+endforeach()
+
+# Check for duplicate CUDA linkage
+if(TARGET CUDA::cudart)
+    get_target_property(CUDART_IMPORTED_LOCATION CUDA::cudart IMPORTED_LOCATION)
+    message(STATUS "CUDA::cudart location: ${CUDART_IMPORTED_LOCATION}")
+endif()
+
+message(STATUS "======== ✅ CMake Diagnostics End ========")
