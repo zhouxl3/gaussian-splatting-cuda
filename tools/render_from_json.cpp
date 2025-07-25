@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
         std::cerr << "Failed to load PLY: " << splat_result.error() << "\n";
         return 1;
     }
-    gs::SplatData model = std::move(*splat_result);
+    SplatData model = std::move(*splat_result);
 
     std::ifstream json_stream(json_path);
     nlohmann::json json;
@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
 
         auto output = gs::rasterize(cam, model, bg_color);
         std::filesystem::path out_path = out_dir / (img_id + ".png");
-        gs::save_image(out_path, output.image);
+        save_image(out_path, output.image);
         std::cout << "Saved " << out_path << "\n";
         ++cam_idx;
     }
