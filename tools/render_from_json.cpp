@@ -57,6 +57,7 @@ int main(int argc, char** argv) {
         return 1;
     }
     gs::SplatData model = std::move(*splat_result);
+    SplatData model = std::move(*splat_result);
 
     std::ifstream json_stream(json_path);
     nlohmann::json json;
