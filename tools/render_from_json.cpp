@@ -139,11 +139,12 @@ int main(int argc, char** argv) {
         float fy = cam_json["intrinsics"][1][1];
         float cx = cam_json["intrinsics"][0][2];
         float cy = cam_json["intrinsics"][1][2];
-        Camera cam(info.R.t(),
+
+        Camera cam(info.R,
                    info.T,
                    fx,
                    fy,
-                   cx,
+                   (1.f - cx / info.width) * info.width,
                    cy,
                    torch::empty({0}, torch::kFloat32),
                    torch::empty({0}, torch::kFloat32),
