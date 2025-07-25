@@ -312,6 +312,23 @@ endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${MAIN_LINK_LIBRARIES})
 
+add_executable(render_json tools/render_from_json.cpp)
+set_target_properties(render_json PROPERTIES
+        CUDA_ARCHITECTURES native
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+)
+target_include_directories(render_json
+        PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/gsplat
+        ${Python3_INCLUDE_DIRS}
+        ${CUDAToolkit_INCLUDE_DIRS}
+        ${OPENGL_INCLUDE_DIRS}
+)
+target_link_libraries(render_json PRIVATE ${MAIN_LINK_LIBRARIES})
+
 # Platform-specific settings
 if(WIN32)
     file(GLOB TORCH_DLLS "${Torch_DIR}/../../../lib/*.dll")
@@ -321,6 +338,13 @@ if(WIN32)
                 POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different "${TORCH_DLL}"
                 "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
+    endforeach()
+    foreach(TORCH_DLL ${TORCH_DLLS})
+        add_custom_command(
+                TARGET render_json
+                POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different "${TORCH_DLL}"
+                "$<TARGET_FILE_DIR:render_json>")
     endforeach()
 elseif(UNIX)
     target_link_libraries(${PROJECT_NAME} PRIVATE GL GLU)
@@ -370,6 +394,7 @@ if(CUDA_GL_INTEROP_FOUND AND TARGET gaussian_visualizer)
     configure_build_type(gaussian_visualizer)
 endif()
 configure_build_type(${PROJECT_NAME})
+configure_build_type(render_json)
 
 # =============================================================================
 # TESTING (Optional)

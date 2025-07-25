@@ -278,6 +278,16 @@ GPU acceleration and GUI support (e.g., OpenGL viewers) are enabled if supported
 4. Clean your build directory: `rm -rf build/`
 5. Rebuild the project
 
+### Render from Camera JSON
+Builds on both Linux and Windows include a helper executable `render_json`.
+It loads a Gaussian PLY along with a JSON file of camera parameters and
+outputs a rendered PNG for each camera entry.
+
+```bash
+./build/render_json <model.ply> cameras.json output/
+Run `./build/render_json --help` for all options.
+```
+
 ## Dataset
 
 Download the dataset from the original repository:
