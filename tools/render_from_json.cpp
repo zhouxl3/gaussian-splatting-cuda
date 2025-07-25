@@ -56,7 +56,6 @@ int main(int argc, char** argv) {
         std::cerr << "Failed to load PLY: " << splat_result.error() << "\n";
         return 1;
     }
-    gs::SplatData model = std::move(*splat_result);
     SplatData model = std::move(*splat_result);
 
     std::ifstream json_stream(json_path);

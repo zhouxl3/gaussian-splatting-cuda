@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
 
         // Create viewer without trainer
         std::string title = "3DGS Viewer - " + params.ply_path.filename().string();
-        auto viewer = std::make_unique<gs::GSViewer>(title, 1280, 720);
+        auto viewer = std::make_unique<gs::GSViewer>(title, 3840, 2160);
         viewer->setTrainer(nullptr); // No trainer in viewer mode
         viewer->setStandaloneModel(std::move(splat_data));
         viewer->setAntiAliasing(params.optimization.antialiasing);
