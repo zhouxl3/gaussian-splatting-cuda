@@ -349,6 +349,13 @@ if(WIN32)
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different "${TORCH_DLL}"
                 "$<TARGET_FILE_DIR:${PROJECT_NAME}>")
     endforeach()
+    foreach(TORCH_DLL ${TORCH_DLLS})
+        add_custom_command(
+                TARGET render_json
+                POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different "${TORCH_DLL}"
+                "$<TARGET_FILE_DIR:render_json>")
+    endforeach()
 elseif(UNIX)
     target_link_libraries(${PROJECT_NAME} PRIVATE GL GLU)
 
